@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tetris Ultimate</title>
+<title>Tetris</title>
 
 <style>
 
@@ -29,8 +29,6 @@ border:3px solid white;
 touch-action:none;
 }
 
-#panel{text-align:left;}
-
 button{
 font-size:18px;
 padding:10px 16px;
@@ -43,8 +41,6 @@ color:white;
 
 #controls{margin-top:10px}
 
-/* overlay */
-
 #overlay{
 position:fixed;
 inset:0;
@@ -54,14 +50,6 @@ justify-content:center;
 flex-direction:column;
 background:rgba(0,0,0,.8);
 font-size:36px;
-opacity:1;
-pointer-events:auto;
-transition:0.3s;
-}
-
-.hidden{
-opacity:0;
-pointer-events:none;
 }
 
 </style>
@@ -69,24 +57,10 @@ pointer-events:none;
 
 <body>
 
-<h1>Tetris Ultimate</h1>
+<h1>Tetris</h1>
 
 <div id="ui">
-
 <canvas id="game" width="240" height="400"></canvas>
-
-<div id="panel">
-
-<div>Score: <span id="score">0</span></div>
-<div>Level: <span id="level">1</span></div>
-
-<p>Next</p>
-<canvas id="next" width="80" height="80"></canvas>
-
-<p>Hold</p>
-<canvas id="hold" width="80" height="80"></canvas>
-
-</div>
 </div>
 
 <div id="controls">
@@ -95,8 +69,6 @@ pointer-events:none;
 <button onclick="move(1)">▶</button>
 <button onclick="drop()">▼</button>
 <button onclick="hardDrop()">⤓</button>
-<button onclick="hold()">HOLD</button>
-<button onclick="togglePause()">PAUSE</button>
 </div>
 
 <div id="overlay">
@@ -112,33 +84,19 @@ const canvas=document.getElementById("game")
 const ctx=canvas.getContext("2d")
 ctx.scale(20,20)
 
-const nextCanvas=document.getElementById("next")
-const nextCtx=nextCanvas.getContext("2d")
-nextCtx.scale(20,20)
-
-const holdCanvas=document.getElementById("hold")
-const holdCtx=holdCanvas.getContext("2d")
-holdCtx.scale(20,20)
-
 /* game state */
 
 const arena=createMatrix(12,20)
 
-let score=0
-let level=1
-let lines=0
-
 let dropInterval=1000
+let dropCounter=0
+let last=0
+let paused=true
 
 const player={
 pos:{x:0,y:0},
 matrix:null
 }
-
-let nextPiece=null
-let holdPiece=null
-let holdUsed=false
-let paused=true
 
 /* colors */
 
@@ -173,13 +131,13 @@ return m
 
 /* draw */
 
-function drawMatrix(matrix,offset,context=ctx){
+function drawMatrix(matrix,offset){
 
 matrix.forEach((row,y)=>{
 row.forEach((v,x)=>{
 if(v){
-context.fillStyle=colors[v]
-context.fillRect(x+offset.x,y+offset.y,1,1)
+ctx.fillStyle=colors[v]
+ctx.fillRect(x+offset.x,y+offset.y,1,1)
 }
 })
 })
@@ -196,19 +154,6 @@ drawMatrix(arena,{x:0,y:0})
 if(player.matrix)
 drawMatrix(player.matrix,player.pos)
 
-drawNext()
-drawHold()
-
-}
-
-function drawNext(){
-nextCtx.clearRect(0,0,80,80)
-if(nextPiece)drawMatrix(nextPiece,{x:1,y:1},nextCtx)
-}
-
-function drawHold(){
-holdCtx.clearRect(0,0,80,80)
-if(holdPiece)drawMatrix(holdPiece,{x:1,y:1},holdCtx)
 }
 
 /* collision */
@@ -238,29 +183,6 @@ if(v)arena[y+player.pos.y][x+player.pos.x]=v
 
 }
 
-/* line clear */
-
-function sweep(){
-
-for(let y=arena.length-1;y>0;y--){
-
-if(arena[y].every(v=>v!==0)){
-
-const row=arena.splice(y,1)[0].fill(0)
-arena.unshift(row)
-
-score+=100
-lines++
-
-}
-
-}
-
-level=1+Math.floor(lines/10)
-dropInterval=Math.max(100,1000-(level*70))
-
-}
-
 /* movement */
 
 function move(dir){
@@ -281,10 +203,6 @@ player.pos.y--
 merge(arena,player)
 
 resetPlayer()
-
-sweep()
-
-updateUI()
 
 }
 
@@ -327,60 +245,20 @@ rotate(player.matrix)
 
 }
 
-/* hold */
-
-function hold(){
-
-if(holdUsed)return
-
-if(!holdPiece){
-
-holdPiece=player.matrix
-resetPlayer()
-
-}else{
-
-[holdPiece,player.matrix]=[player.matrix,holdPiece]
-
-player.pos.y=0
-player.pos.x=5
-
-}
-
-holdUsed=true
-
-}
-
 /* reset */
 
 function resetPlayer(){
 
-player.matrix=nextPiece||randomPiece()
-
-nextPiece=randomPiece()
+player.matrix=randomPiece()
 
 player.pos.y=0
 player.pos.x=5
-
-holdUsed=false
 
 if(collide(arena,player))gameOver()
 
 }
 
-/* UI */
-
-function updateUI(){
-
-document.getElementById("score").innerText=score
-document.getElementById("level").innerText=level
-
-}
-
 /* loop */
-
-let dropCounter=0
-let last=0
 
 function update(time=0){
 
@@ -399,22 +277,15 @@ requestAnimationFrame(update)
 
 }
 
-/* pause */
-
-function togglePause(){
-
-paused=!paused
-if(!paused)update()
-
-}
-
 /* game over */
 
 function gameOver(){
 
 paused=true
 
-document.getElementById("overlay").classList.remove("hidden")
+const overlay=document.getElementById("overlay")
+overlay.style.display="flex"
+
 document.getElementById("overText").innerText="GAME OVER"
 
 }
@@ -423,28 +294,16 @@ document.getElementById("overText").innerText="GAME OVER"
 
 function startGame(){
 
+const overlay=document.getElementById("overlay")
+overlay.style.display="none"
+
 arena.forEach(r=>r.fill(0))
 
-score=0
-level=1
-lines=0
-
-holdPiece=null
-
-nextPiece=randomPiece()
 player.matrix=randomPiece()
-
 player.pos.y=0
 player.pos.x=5
 
-updateUI()
-
 paused=false
-
-document.getElementById("overlay").classList.add("hidden")
-
-last=0
-dropCounter=0
 
 update()
 
@@ -459,7 +318,6 @@ if(e.key==="ArrowRight")move(1)
 if(e.key==="ArrowDown")drop()
 if(e.key==="ArrowUp")rotatePlayer()
 if(e.key===" ")hardDrop()
-if(e.key==="Shift")hold()
 
 })
 
