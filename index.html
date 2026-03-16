@@ -2,10 +2,11 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tetris Ultimate</title>
 
 <style>
+
 body{
 background:#111;
 color:white;
@@ -25,21 +26,24 @@ flex-wrap:wrap;
 canvas{
 background:#000;
 border:3px solid white;
+touch-action:none;
 }
 
 #panel{text-align:left;}
 
 button{
-font-size:20px;
-padding:12px 20px;
-margin:5px;
+font-size:18px;
+padding:10px 16px;
+margin:4px;
 border-radius:10px;
 border:none;
 background:#444;
 color:white;
 }
 
-#controls{margin-top:10px;}
+#controls{margin-top:10px}
+
+/* overlay */
 
 #overlay{
 position:fixed;
@@ -47,12 +51,19 @@ inset:0;
 display:flex;
 align-items:center;
 justify-content:center;
-background:rgba(0,0,0,.8);
-font-size:40px;
 flex-direction:column;
+background:rgba(0,0,0,.8);
+font-size:36px;
+opacity:1;
+pointer-events:auto;
+transition:0.3s;
 }
 
-.hidden{display:none}
+.hidden{
+opacity:0;
+pointer-events:none;
+}
+
 </style>
 </head>
 
@@ -95,7 +106,7 @@ flex-direction:column;
 
 <script>
 
-/* ===== Canvas ===== */
+/* canvas */
 
 const canvas=document.getElementById("game")
 const ctx=canvas.getContext("2d")
@@ -109,7 +120,7 @@ const holdCanvas=document.getElementById("hold")
 const holdCtx=holdCanvas.getContext("2d")
 holdCtx.scale(20,20)
 
-/* ===== Game state ===== */
+/* game state */
 
 const arena=createMatrix(12,20)
 
@@ -129,9 +140,11 @@ let holdPiece=null
 let holdUsed=false
 let paused=true
 
-/* ===== Shapes ===== */
+/* colors */
 
 const colors=[null,"#0ff","#ff0","#f80","#00f","#0f0","#f00","#f0f"]
+
+/* pieces */
 
 function createPiece(type){
 
@@ -150,7 +163,7 @@ const p="TJLOSZI"
 return createPiece(p[Math.floor(Math.random()*p.length)])
 }
 
-/* ===== Matrix ===== */
+/* matrix */
 
 function createMatrix(w,h){
 const m=[]
@@ -158,7 +171,7 @@ while(h--)m.push(new Array(w).fill(0))
 return m
 }
 
-/* ===== Draw ===== */
+/* draw */
 
 function drawMatrix(matrix,offset,context=ctx){
 
@@ -179,18 +192,33 @@ ctx.fillStyle="#000"
 ctx.fillRect(0,0,canvas.width,canvas.height)
 
 drawMatrix(arena,{x:0,y:0})
+
+if(player.matrix)
 drawMatrix(player.matrix,player.pos)
+
+drawNext()
+drawHold()
 
 }
 
-/* ===== Collision ===== */
+function drawNext(){
+nextCtx.clearRect(0,0,80,80)
+if(nextPiece)drawMatrix(nextPiece,{x:1,y:1},nextCtx)
+}
+
+function drawHold(){
+holdCtx.clearRect(0,0,80,80)
+if(holdPiece)drawMatrix(holdPiece,{x:1,y:1},holdCtx)
+}
+
+/* collision */
 
 function collide(arena,player){
 
 for(let y=0;y<player.matrix.length;y++)
 for(let x=0;x<player.matrix[y].length;x++)
 if(player.matrix[y][x]!==0 &&
-(arena[y+player.pos.y]&&
+(arena[y+player.pos.y] &&
 arena[y+player.pos.y][x+player.pos.x])!==0)
 return true
 
@@ -198,7 +226,7 @@ return false
 
 }
 
-/* ===== Merge ===== */
+/* merge */
 
 function merge(arena,player){
 
@@ -210,7 +238,7 @@ if(v)arena[y+player.pos.y][x+player.pos.x]=v
 
 }
 
-/* ===== Line clear ===== */
+/* line clear */
 
 function sweep(){
 
@@ -233,7 +261,7 @@ dropInterval=Math.max(100,1000-(level*70))
 
 }
 
-/* ===== Movement ===== */
+/* movement */
 
 function move(dir){
 
@@ -275,7 +303,7 @@ drop()
 
 }
 
-/* ===== Rotate ===== */
+/* rotate */
 
 function rotate(m){
 
@@ -299,7 +327,7 @@ rotate(player.matrix)
 
 }
 
-/* ===== Hold ===== */
+/* hold */
 
 function hold(){
 
@@ -323,11 +351,12 @@ holdUsed=true
 
 }
 
-/* ===== Reset player ===== */
+/* reset */
 
 function resetPlayer(){
 
 player.matrix=nextPiece||randomPiece()
+
 nextPiece=randomPiece()
 
 player.pos.y=0
@@ -339,7 +368,7 @@ if(collide(arena,player))gameOver()
 
 }
 
-/* ===== UI ===== */
+/* UI */
 
 function updateUI(){
 
@@ -348,19 +377,19 @@ document.getElementById("level").innerText=level
 
 }
 
-/* ===== Loop ===== */
+/* loop */
 
 let dropCounter=0
 let last=0
 
-function update(t=0){
+function update(time=0){
 
 if(paused)return
 
-const d=t-last
-last=t
+const delta=time-last
+last=time
 
-dropCounter+=d
+dropCounter+=delta
 
 if(dropCounter>dropInterval)drop()
 
@@ -370,17 +399,16 @@ requestAnimationFrame(update)
 
 }
 
-/* ===== Pause ===== */
+/* pause */
 
 function togglePause(){
 
 paused=!paused
-
 if(!paused)update()
 
 }
 
-/* ===== Game over ===== */
+/* game over */
 
 function gameOver(){
 
@@ -391,7 +419,7 @@ document.getElementById("overText").innerText="GAME OVER"
 
 }
 
-/* ===== Start ===== */
+/* start */
 
 function startGame(){
 
@@ -415,9 +443,25 @@ paused=false
 
 document.getElementById("overlay").classList.add("hidden")
 
+last=0
+dropCounter=0
+
 update()
 
 }
+
+/* keyboard */
+
+document.addEventListener("keydown",e=>{
+
+if(e.key==="ArrowLeft")move(-1)
+if(e.key==="ArrowRight")move(1)
+if(e.key==="ArrowDown")drop()
+if(e.key==="ArrowUp")rotatePlayer()
+if(e.key===" ")hardDrop()
+if(e.key==="Shift")hold()
+
+})
 
 </script>
 
