@@ -223,3 +223,203 @@ arena.unshift(row)
 
 score+=100
 lines++
+
+}
+
+}
+
+level=1+Math.floor(lines/10)
+dropInterval=Math.max(100,1000-(level*70))
+
+}
+
+/* ===== Movement ===== */
+
+function move(dir){
+
+player.pos.x+=dir
+if(collide(arena,player))player.pos.x-=dir
+
+}
+
+function drop(){
+
+player.pos.y++
+
+if(collide(arena,player)){
+
+player.pos.y--
+
+merge(arena,player)
+
+resetPlayer()
+
+sweep()
+
+updateUI()
+
+}
+
+dropCounter=0
+
+}
+
+function hardDrop(){
+
+while(!collide(arena,player))
+player.pos.y++
+
+player.pos.y--
+
+drop()
+
+}
+
+/* ===== Rotate ===== */
+
+function rotate(m){
+
+for(let y=0;y<m.length;y++)
+for(let x=0;x<y;x++)
+[m[x][y],m[y][x]]=[m[y][x],m[x][y]]
+
+m.forEach(r=>r.reverse())
+
+}
+
+function rotatePlayer(){
+
+rotate(player.matrix)
+
+if(collide(arena,player)){
+rotate(player.matrix)
+rotate(player.matrix)
+rotate(player.matrix)
+}
+
+}
+
+/* ===== Hold ===== */
+
+function hold(){
+
+if(holdUsed)return
+
+if(!holdPiece){
+
+holdPiece=player.matrix
+resetPlayer()
+
+}else{
+
+[holdPiece,player.matrix]=[player.matrix,holdPiece]
+
+player.pos.y=0
+player.pos.x=5
+
+}
+
+holdUsed=true
+
+}
+
+/* ===== Reset player ===== */
+
+function resetPlayer(){
+
+player.matrix=nextPiece||randomPiece()
+nextPiece=randomPiece()
+
+player.pos.y=0
+player.pos.x=5
+
+holdUsed=false
+
+if(collide(arena,player))gameOver()
+
+}
+
+/* ===== UI ===== */
+
+function updateUI(){
+
+document.getElementById("score").innerText=score
+document.getElementById("level").innerText=level
+
+}
+
+/* ===== Loop ===== */
+
+let dropCounter=0
+let last=0
+
+function update(t=0){
+
+if(paused)return
+
+const d=t-last
+last=t
+
+dropCounter+=d
+
+if(dropCounter>dropInterval)drop()
+
+draw()
+
+requestAnimationFrame(update)
+
+}
+
+/* ===== Pause ===== */
+
+function togglePause(){
+
+paused=!paused
+
+if(!paused)update()
+
+}
+
+/* ===== Game over ===== */
+
+function gameOver(){
+
+paused=true
+
+document.getElementById("overlay").classList.remove("hidden")
+document.getElementById("overText").innerText="GAME OVER"
+
+}
+
+/* ===== Start ===== */
+
+function startGame(){
+
+arena.forEach(r=>r.fill(0))
+
+score=0
+level=1
+lines=0
+
+holdPiece=null
+
+nextPiece=randomPiece()
+player.matrix=randomPiece()
+
+player.pos.y=0
+player.pos.x=5
+
+updateUI()
+
+paused=false
+
+document.getElementById("overlay").classList.add("hidden")
+
+update()
+
+}
+
+</script>
+
+</body>
+</html>
