@@ -460,7 +460,6 @@ document.getElementById("overText").innerText="GAME OVER"
 }
 
 /* ===== Start ===== */
-
 function startGame(){
 
 arena.forEach(r=>r.fill(0))
@@ -469,10 +468,14 @@ score=0
 level=1
 lines=0
 
-nextPiece=randomPiece()
 holdPiece=null
 
-resetPlayer()
+/* 先に2つ作る */
+nextPiece=randomPiece()
+player.matrix=randomPiece()
+
+player.pos.y=0
+player.pos.x=5
 
 updateUI()
 
@@ -483,6 +486,7 @@ document.getElementById("overlay").classList.add("hidden")
 update()
 
 }
+
 
 /* ===== Touch swipe ===== */
 
