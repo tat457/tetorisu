@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tetris</title>
+<title>Tetris BGM版</title>
 
 <style>
-
 body{
 background:#111;
 color:white;
@@ -42,10 +41,7 @@ background:rgba(0,0,0,.8);
 font-size:36px;
 }
 
-#ui{
-margin-top:10px;
-}
-
+#ui{margin-top:10px}
 </style>
 </head>
 
@@ -68,6 +64,10 @@ margin-top:10px;
 <button onclick="hardDrop()">⤓</button>
 </div>
 
+<!-- BGM -->
+<audio id="bgm" src="tetorisubgm.mp3" loop></audio>
+
+<!-- START画面 -->
 <div id="overlay">
 <div id="overText">TAP START</div>
 <button onclick="startGame()">START</button>
@@ -106,7 +106,6 @@ const colors=[null,"#0ff","#ff0","#f80","#00f","#0f0","#f00","#f0f"]
 /* pieces */
 
 function createPiece(type){
-
 if(type==="T")return[[0,1,0],[1,1,1],[0,0,0]]
 if(type==="O")return[[2,2],[2,2]]
 if(type==="L")return[[0,3,0],[0,3,0],[0,3,3]]
@@ -114,7 +113,6 @@ if(type==="J")return[[0,4,0],[0,4,0],[4,4,0]]
 if(type==="I")return[[0,5,0,0],[0,5,0,0],[0,5,0,0],[0,5,0,0]]
 if(type==="S")return[[0,6,6],[6,6,0],[0,0,0]]
 if(type==="Z")return[[7,7,0],[0,7,7],[0,0,0]]
-
 }
 
 function randomPiece(){
@@ -133,7 +131,6 @@ return m
 /* draw */
 
 function drawMatrix(matrix,offset){
-
 matrix.forEach((row,y)=>{
 row.forEach((v,x)=>{
 if(v){
@@ -142,46 +139,35 @@ ctx.fillRect(x+offset.x,y+offset.y,1,1)
 }
 })
 })
-
 }
 
 function draw(){
-
 ctx.fillStyle="#000"
 ctx.fillRect(0,0,canvas.width,canvas.height)
-
 drawMatrix(arena,{x:0,y:0})
-
-if(player.matrix)
-drawMatrix(player.matrix,player.pos)
-
+if(player.matrix)drawMatrix(player.matrix,player.pos)
 }
 
 /* collision */
 
 function collide(arena,player){
-
 for(let y=0;y<player.matrix.length;y++)
 for(let x=0;x<player.matrix[y].length;x++)
 if(player.matrix[y][x]!==0 &&
 (arena[y+player.pos.y] &&
 arena[y+player.pos.y][x+player.pos.x])!==0)
 return true
-
 return false
-
 }
 
 /* merge */
 
 function merge(arena,player){
-
 player.matrix.forEach((row,y)=>{
 row.forEach((v,x)=>{
 if(v)arena[y+player.pos.y][x+player.pos.x]=v
 })
 })
-
 }
 
 /* line clear */
@@ -191,30 +177,20 @@ function sweep(){
 let cleared=0
 
 for(let y=arena.length-1;y>=0;y--){
-
 if(arena[y].every(v=>v!==0)){
-
 arena.splice(y,1)
 arena.unshift(new Array(12).fill(0))
-
 cleared++
 y++
-
 }
-
 }
 
 if(cleared>0){
-
 lines+=cleared
 score+=cleared*100
-
 level=1+Math.floor(lines/10)
-
 dropInterval=Math.max(100,1000-(level*80))
-
 updateUI()
-
 }
 
 }
@@ -222,106 +198,71 @@ updateUI()
 /* movement */
 
 function move(dir){
-
 player.pos.x+=dir
 if(collide(arena,player))player.pos.x-=dir
-
 }
 
 function drop(){
-
 player.pos.y++
-
 if(collide(arena,player)){
-
 player.pos.y--
-
 merge(arena,player)
-
 resetPlayer()
-
 sweep()
-
 }
-
 dropCounter=0
-
 }
 
 function hardDrop(){
-
-while(!collide(arena,player))
-player.pos.y++
-
+while(!collide(arena,player))player.pos.y++
 player.pos.y--
-
 drop()
-
 }
 
 /* rotate */
 
 function rotate(m){
-
 for(let y=0;y<m.length;y++)
 for(let x=0;x<y;x++)
 [m[x][y],m[y][x]]=[m[y][x],m[x][y]]
-
 m.forEach(r=>r.reverse())
-
 }
 
 function rotatePlayer(){
-
 rotate(player.matrix)
-
 if(collide(arena,player)){
 rotate(player.matrix)
 rotate(player.matrix)
 rotate(player.matrix)
 }
-
 }
 
 /* reset */
 
 function resetPlayer(){
-
 player.matrix=randomPiece()
-
 player.pos.y=0
 player.pos.x=5
-
 if(collide(arena,player))gameOver()
-
 }
 
 /* UI */
 
 function updateUI(){
-
 document.getElementById("score").innerText=score
 document.getElementById("level").innerText=level
-
 }
 
 /* loop */
 
 function update(time=0){
-
 if(paused)return
-
 const delta=time-last
 last=time
-
 dropCounter+=delta
-
 if(dropCounter>dropInterval)drop()
-
 draw()
-
 requestAnimationFrame(update)
-
 }
 
 /* game over */
@@ -330,10 +271,11 @@ function gameOver(){
 
 paused=true
 
-const overlay=document.getElementById("overlay")
-overlay.style.display="flex"
-
+document.getElementById("overlay").style.display="flex"
 document.getElementById("overText").innerText="GAME OVER"
+
+// BGM停止
+document.getElementById("bgm").pause()
 
 }
 
@@ -343,6 +285,12 @@ function startGame(){
 
 const overlay=document.getElementById("overlay")
 overlay.style.display="none"
+
+// BGM再生（iPhone対応）
+const bgm=document.getElementById("bgm")
+bgm.currentTime=0
+bgm.volume=0.5
+bgm.play()
 
 arena.forEach(r=>r.fill(0))
 
@@ -368,13 +316,11 @@ update()
 /* keyboard */
 
 document.addEventListener("keydown",e=>{
-
 if(e.key==="ArrowLeft")move(-1)
 if(e.key==="ArrowRight")move(1)
 if(e.key==="ArrowDown")drop()
 if(e.key==="ArrowUp")rotatePlayer()
 if(e.key===" ")hardDrop()
-
 })
 
 </script>
